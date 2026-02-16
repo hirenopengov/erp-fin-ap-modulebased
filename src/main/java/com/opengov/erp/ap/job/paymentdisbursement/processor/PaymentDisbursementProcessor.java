@@ -25,12 +25,33 @@ public class PaymentDisbursementProcessor implements ItemProcessor<EmployeeCSVDT
     public void beforeStep(StepExecution stepExecution) {
         this.stepExecution = stepExecution;
         // Get tax rate from job parameters, default to 5.0
-        String taxRateParam = stepExecution.getJobParameters().getString("taxRate");
-        if (taxRateParam != null) {
+        org.springframework.batch.core.JobParameters params = stepExecution.getJobParameters();
+        try {
+            Double doubleValue = params.getDouble("taxRate");
+            if (doubleValue != null) {
+                this.taxRate = doubleValue;
+            }
+        } catch (IllegalArgumentException e) {
+            // Try as Long
             try {
-                this.taxRate = Double.parseDouble(taxRateParam);
-            } catch (NumberFormatException e) {
-                // Use default if parsing fails
+                Long longValue = params.getLong("taxRate");
+                if (longValue != null) {
+                    this.taxRate = longValue.doubleValue();
+                }
+            } catch (IllegalArgumentException e2) {
+                // Try as String
+                try {
+                    String taxRateParam = params.getString("taxRate");
+                    if (taxRateParam != null) {
+                        try {
+                            this.taxRate = Double.parseDouble(taxRateParam);
+                        } catch (NumberFormatException e3) {
+                            // Use default if number format is invalid
+                        }
+                    }
+                } catch (IllegalArgumentException e4) {
+                    // Use default if parameter doesn't exist or wrong type
+                }
             }
         }
     }

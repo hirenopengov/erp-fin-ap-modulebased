@@ -34,9 +34,9 @@ public class PaymentProcessingStepListener implements StepExecutionListener {
         logger.info("[Payment Processing - STEP START] Job Parameters: {}", stepExecution.getJobParameters());
         
         // Log custom parameters if present
-        String bonusPercentage = stepExecution.getJobParameters().getString("bonusPercentage");
-        String inputFile = stepExecution.getJobParameters().getString("inputFile");
-        String outputFile = stepExecution.getJobParameters().getString("outputFile");
+        String bonusPercentage = getParameterAsString(stepExecution, "bonusPercentage");
+        String inputFile = getParameterAsString(stepExecution, "inputFile");
+        String outputFile = getParameterAsString(stepExecution, "outputFile");
         
         if (bonusPercentage != null) {
             logger.info("[Payment Processing - STEP START] Bonus Percentage: {}%", bonusPercentage);
@@ -88,5 +88,46 @@ public class PaymentProcessingStepListener implements StepExecutionListener {
         TenantContext.clear();
         
         return stepExecution.getExitStatus();
+    }
+    
+    private String getParameterAsString(StepExecution stepExecution, String key) {
+        org.springframework.batch.core.JobParameters params = stepExecution.getJobParameters();
+        try {
+            String value = params.getString(key);
+            if (value != null) {
+                return value;
+            }
+        } catch (IllegalArgumentException e) {
+            // Parameter exists but is not a String type
+        }
+        
+        try {
+            Long longValue = params.getLong(key);
+            if (longValue != null) {
+                return String.valueOf(longValue);
+            }
+        } catch (IllegalArgumentException e) {
+            // Parameter exists but is not a Long type
+        }
+        
+        try {
+            Double doubleValue = params.getDouble(key);
+            if (doubleValue != null) {
+                return String.valueOf(doubleValue);
+            }
+        } catch (IllegalArgumentException e) {
+            // Parameter exists but is not a Double type
+        }
+        
+        try {
+            java.util.Date dateValue = params.getDate(key);
+            if (dateValue != null) {
+                return String.valueOf(dateValue);
+            }
+        } catch (IllegalArgumentException e) {
+            // Parameter exists but is not a Date type
+        }
+        
+        return null;
     }
 }

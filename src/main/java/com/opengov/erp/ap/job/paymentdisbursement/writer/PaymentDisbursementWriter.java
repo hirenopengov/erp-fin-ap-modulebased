@@ -8,11 +8,9 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.stereotype.Component;
 
 import java.nio.file.Paths;
 
-@Component
 public class PaymentDisbursementWriter {
 
     private StepExecution stepExecution;

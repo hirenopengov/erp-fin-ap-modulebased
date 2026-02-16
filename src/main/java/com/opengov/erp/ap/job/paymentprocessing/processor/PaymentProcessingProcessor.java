@@ -25,12 +25,33 @@ public class PaymentProcessingProcessor implements ItemProcessor<EmployeeCSVDTO,
     public void beforeStep(StepExecution stepExecution) {
         this.stepExecution = stepExecution;
         // Get bonus percentage from job parameters, default to 10.0
-        String bonusParam = stepExecution.getJobParameters().getString("bonusPercentage");
-        if (bonusParam != null) {
+        org.springframework.batch.core.JobParameters params = stepExecution.getJobParameters();
+        try {
+            Double doubleValue = params.getDouble("bonusPercentage");
+            if (doubleValue != null) {
+                this.bonusPercentage = doubleValue;
+            }
+        } catch (IllegalArgumentException e) {
+            // Try as Long
             try {
-                this.bonusPercentage = Double.parseDouble(bonusParam);
-            } catch (NumberFormatException e) {
-                // Use default if parsing fails
+                Long longValue = params.getLong("bonusPercentage");
+                if (longValue != null) {
+                    this.bonusPercentage = longValue.doubleValue();
+                }
+            } catch (IllegalArgumentException e2) {
+                // Try as String
+                try {
+                    String bonusParam = params.getString("bonusPercentage");
+                    if (bonusParam != null) {
+                        try {
+                            this.bonusPercentage = Double.parseDouble(bonusParam);
+                        } catch (NumberFormatException e3) {
+                            // Use default if number format is invalid
+                        }
+                    }
+                } catch (IllegalArgumentException e4) {
+                    // Use default if parameter doesn't exist or wrong type
+                }
             }
         }
     }
