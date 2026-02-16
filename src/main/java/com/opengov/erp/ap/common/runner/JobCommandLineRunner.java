@@ -88,8 +88,10 @@ public class JobCommandLineRunner implements CommandLineRunner {
         logger.info("  java -jar app.jar run <jobName> [param1=value1] [param2=value2] ...");
         logger.info("");
         logger.info("Examples:");
-        logger.info("  java -jar app.jar run paymentProcessingJob bonusPercentage=15.0 inputFile=employees.csv");
-        logger.info("  java -jar app.jar run paymentDisbursementJob taxRate=7.5 outputFile=disbursed.csv");
+        logger.info("  java -jar app.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0 inputFile=employees.csv");
+        logger.info("  java -jar app.jar run paymentDisbursementJob entityId=TENANT001 taxRate=7.5 outputFile=disbursed.csv");
+        logger.info("");
+        logger.info("Note: entityId parameter is REQUIRED for multitenant operations");
         logger.info("");
         logger.info("Commands:");
         logger.info("  run <jobName> [params]  - Run a specific job with optional parameters");

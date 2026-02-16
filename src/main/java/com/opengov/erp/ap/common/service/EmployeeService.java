@@ -1,5 +1,6 @@
 package com.opengov.erp.ap.common.service;
 
+import com.opengov.erp.ap.common.context.TenantContext;
 import com.opengov.erp.ap.common.model.Employee;
 import com.opengov.erp.ap.common.repository.EmployeeRepository;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,11 @@ public class EmployeeService extends BaseService<Employee, Long> {
     }
 
     public Employee createOrUpdate(Employee employee) {
+        // Ensure entity_id is set
+        if (employee.getEntityId() == null) {
+            employee.setEntityId(TenantContext.getCurrentTenant());
+        }
+        
         Optional<Employee> existing = employeeRepository.findByEmployeeId(employee.getEmployeeId());
         if (existing.isPresent()) {
             Employee existingEmployee = existing.get();

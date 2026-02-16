@@ -1,5 +1,6 @@
 package com.opengov.erp.ap.job.paymentprocessing.listener;
 
+import com.opengov.erp.ap.common.context.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -14,6 +15,14 @@ public class PaymentProcessingStepListener implements StepExecutionListener {
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
+        // Set tenant context from job parameters
+        String entityId = stepExecution.getJobParameters().getString("entityId");
+        if (entityId != null && !entityId.trim().isEmpty()) {
+            TenantContext.setCurrentTenant(entityId);
+            logger.info("[Payment Processing - STEP START] Tenant context set to entity_id: {}", entityId);
+        } else {
+            logger.warn("[Payment Processing - STEP START] No entity_id parameter provided. Tenant context not set.");
+        }
         logger.info("========================================");
         logger.info("[Payment Processing - STEP START] Payment Processing Step Started");
         logger.info("[Payment Processing - STEP START] Step Name: {}", stepExecution.getStepName());
@@ -65,6 +74,9 @@ public class PaymentProcessingStepListener implements StepExecutionListener {
         logger.info("[Payment Processing - STEP END] Execution Duration: {} ms ({} seconds)", 
                 duration, String.format("%.2f", duration / 1000.0));
         logger.info("========================================");
+        
+        // Clear tenant context after step completion
+        TenantContext.clear();
         
         return stepExecution.getExitStatus();
     }

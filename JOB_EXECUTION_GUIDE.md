@@ -19,26 +19,26 @@ This guide explains how to execute Spring Batch jobs in this application.
 
 #### Run with default parameters:
 ```bash
-# Payment Processing Job
-mvn spring-boot:run -Dspring-boot.run.arguments=run paymentProcessingJob
+# Payment Processing Job (entityId is required)
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob entityId=TENANT001"
 
-# Payment Disbursement Job
-mvn spring-boot:run -Dspring-boot.run.arguments=run paymentDisbursementJob
+# Payment Disbursement Job (entityId is required)
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentDisbursementJob entityId=TENANT001"
 ```
 
 #### Run with custom parameters:
 ```bash
 # Payment Processing with custom bonus percentage
-mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob bonusPercentage=15.0"
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0"
 
 # Payment Processing with all parameters
-mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=custom_output.csv"
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob entityId=TENANT001 bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=custom_output.csv"
 
 # Payment Disbursement with custom tax rate
-mvn spring-boot:run -Dspring-boot.run.arguments="run paymentDisbursementJob taxRate=7.5"
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentDisbursementJob entityId=TENANT001 taxRate=7.5"
 
 # Payment Disbursement with all parameters
-mvn spring-boot:run -Dspring-boot.run.arguments="run paymentDisbursementJob taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv"
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentDisbursementJob entityId=TENANT001 taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv"
 ```
 
 ### Method 2: Using JAR File (Production)
@@ -64,26 +64,26 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar list
 
 **Run Payment Processing Job:**
 ```bash
-# With default parameters (10% bonus)
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob
+# With entityId and default parameters (10% bonus)
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001
 
-# With custom bonus percentage
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=15.0
+# With entityId and custom bonus percentage
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0
 
 # With all parameters
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=processed_output.csv
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=processed_output.csv
 ```
 
 **Run Payment Disbursement Job:**
 ```bash
-# With default parameters (5% tax rate)
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob
+# With entityId and default parameters (5% tax rate)
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001
 
-# With custom tax rate
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRate=7.5
+# With entityId and custom tax rate
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=7.5
 
 # With all parameters
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv
 ```
 
 ## Available Jobs
@@ -98,10 +98,17 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRat
 
 ## Job Parameters
 
+### Common Parameters (Required for Multitenancy)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `entityId` | String | **Yes** | Tenant identifier (entity_id) for multitenant operations |
+
 ### Payment Processing Job Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|--------|-------------|
+| `entityId` | String | **Required** | Tenant identifier |
 | `bonusPercentage` | Double | 10.0 | Bonus percentage to apply to salary |
 | `inputFile` | String | `data/input/employees.csv` | Input CSV file path |
 | `outputFile` | String | `processed_employees.csv` | Output CSV file name |
@@ -110,6 +117,7 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRat
 
 | Parameter | Type | Default | Description |
 |-----------|------|--------|-------------|
+| `entityId` | String | **Required** | Tenant identifier |
 | `taxRate` | Double | 5.0 | Tax rate percentage to deduct |
 | `inputFile` | String | `data/input/employees.csv` | Input CSV file path |
 | `outputFile` | String | `disbursed_employees.csv` | Output CSV file name |
@@ -118,22 +126,31 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRat
 
 ### Example 1: Run Payment Processing with 15% Bonus
 ```bash
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=15.0
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0
 ```
 
 ### Example 2: Run Payment Disbursement with 7.5% Tax Rate
 ```bash
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRate=7.5
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=7.5
 ```
 
 ### Example 3: Run with Custom Input and Output Files
 ```bash
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=20.0 inputFile=/path/to/input.csv outputFile=my_output.csv
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=20.0 inputFile=/path/to/input.csv outputFile=my_output.csv
 ```
 
 ### Example 4: Using Maven with Parameters
 ```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob bonusPercentage=25.0 inputFile=data/input/employees.csv"
+mvn spring-boot:run -Dspring-boot.run.arguments="run paymentProcessingJob entityId=TENANT001 bonusPercentage=25.0 inputFile=data/input/employees.csv"
+```
+
+### Example 5: Multiple Tenants
+```bash
+# Run for Tenant 001
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0
+
+# Run for Tenant 002
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT002 bonusPercentage=20.0
 ```
 
 ## Output Files
@@ -166,6 +183,17 @@ The application provides detailed logging at each stage:
    - Use format: `parameterName=value`
    - No spaces around `=`
    - For file paths with spaces, use quotes
+
+4. **"No tenant context set" error:**
+   - Ensure `entityId` parameter is provided when running jobs
+   - Example: `entityId=TENANT001`
+   - This parameter is required for all database operations
+
+5. **Database connection errors:**
+   - Verify PostgreSQL is running
+   - Check database connection settings in `application.yml`
+   - Ensure database `fin_ap_batch` exists
+   - See `DATABASE_SETUP.md` for detailed setup instructions
 
 ## Help Command
 
