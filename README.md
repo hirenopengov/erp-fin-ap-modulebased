@@ -1,94 +1,139 @@
-# fin-ap-spring-batch
+# ERP Financial AP - Spring Batch Module
 
-Spring Boot 3.3 application with Spring Batch containing multiple sample jobs.
+Enterprise Resource Planning (ERP) Financial Accounts Payable batch processing module built with Spring Boot 3.3 and Spring Batch 5.x. This module provides batch processing capabilities for payment processing and disbursement operations with multitenancy support.
 
 ## Requirements
-- Java 22
-- Maven 3.6+
-- Spring Boot 3.3.0
+
+- **Java 22**
+- **Maven 3.6+**
+- **Spring Boot 3.3.0**
+- **Spring Batch 5.1.2**
+- **PostgreSQL 12+** (for batch metadata and application data)
+- **Hibernate 6.x** (via Spring Data JPA)
 
 ## Project Structure
 
 ```
-src/main/java/com/example/batch/
-├── Application.java                    # Main Spring Boot application
-├── common/                              # Common components
+src/main/java/com/opengov/erp/ap/
+├── Application.java                          # Main Spring Boot application
+├── common/                                    # Common components
 │   ├── config/
-│   │   └── JpaConfig.java             # JPA configuration
+│   │   ├── BatchConfig.java                  # Spring Batch configuration
+│   │   ├── JpaConfig.java                    # JPA configuration
+│   │   └── TenantAspect.java                 # Multitenancy aspect
 │   ├── constants/
-│   │   └── Constants.java             # Application constants
+│   │   └── Constants.java                    # Application constants
+│   ├── context/
+│   │   └── TenantContext.java                # Tenant context holder
 │   ├── dto/
-│   │   ├── EmployeeDTO.java            # Employee DTO
-│   │   └── EmployeeCSVDTO.java        # Employee CSV DTO
+│   │   ├── EmployeeDTO.java                  # Employee DTO
+│   │   └── EmployeeCSVDTO.java               # Employee CSV DTO
 │   ├── exception/
-│   │   ├── ResourceNotFoundException.java
-│   │   └── GlobalExceptionHandler.java
+│   │   ├── ResourceNotFoundException.java   # Custom exception
+│   │   └── GlobalExceptionHandler.java       # Global exception handler
 │   ├── mapper/
-│   │   └── EmployeeMapper.java        # Entity-DTO mapper
+│   │   └── EmployeeMapper.java               # Entity-DTO mapper
 │   ├── model/
-│   │   ├── BaseEntity.java            # Base entity with common fields
-│   │   └── Employee.java              # Employee entity
+│   │   ├── BaseEntity.java                   # Base entity with common fields
+│   │   └── Employee.java                     # Employee entity
 │   ├── repository/
-│   │   ├── BaseRepository.java        # Base repository interface
-│   │   └── EmployeeRepository.java    # Employee repository
+│   │   ├── BaseRepository.java               # Base repository interface
+│   │   └── EmployeeRepository.java           # Employee repository
+│   ├── runner/
+│   │   └── JobCommandLineRunner.java         # Command-line job runner
 │   ├── service/
-│   │   ├── BaseService.java           # Base service class
-│   │   └── EmployeeService.java       # Employee service
+│   │   ├── BaseService.java                  # Base service class
+│   │   ├── EmployeeService.java              # Employee service
+│   │   └── JobLauncherService.java           # Job launcher service
 │   └── util/
-│       ├── DateUtil.java              # Date utility
-│       └── ValidationUtil.java        # Validation utility
+│       ├── DateUtil.java                     # Date utility
+│       └── ValidationUtil.java               # Validation utility
 └── job/
     ├── paymentprocessing/
     │   ├── config/
     │   │   └── PaymentProcessingConfig.java  # Payment processing job configuration
-    │   ├── reader/
-    │   │   └── PaymentProcessingReader.java  # Payment processing CSV reader
+    │   ├── listener/
+    │   │   ├── PaymentProcessingItemReadListener.java    # Item read listener
+    │   │   ├── PaymentProcessingItemProcessListener.java # Item process listener
+    │   │   ├── PaymentProcessingItemWriteListener.java  # Item write listener
+    │   │   └── PaymentProcessingStepListener.java        # Step execution listener
     │   ├── processor/
-    │   │   └── PaymentProcessingProcessor.java  # Payment processing item processor
+    │   │   └── PaymentProcessingProcessor.java           # Payment processing item processor
+    │   ├── reader/
+    │   │   └── PaymentProcessingReader.java              # Payment processing CSV reader
     │   └── writer/
-    │       └── PaymentProcessingWriter.java   # Payment processing CSV writer
+    │       └── PaymentProcessingWriter.java             # Payment processing CSV writer
     └── paymentdisbursement/
         ├── config/
-        │   └── PaymentDisbursementConfig.java  # Payment disbursement job configuration
-        ├── reader/
-        │   └── PaymentDisbursementReader.java  # Payment disbursement CSV reader
+        │   └── PaymentDisbursementConfig.java            # Payment disbursement job configuration
+        ├── listener/
+        │   ├── PaymentDisbursementItemReadListener.java  # Item read listener
+        │   ├── PaymentDisbursementItemProcessListener.java # Item process listener
+        │   ├── PaymentDisbursementItemWriteListener.java   # Item write listener
+        │   └── PaymentDisbursementStepListener.java         # Step execution listener
         ├── processor/
-        │   └── PaymentDisbursementProcessor.java  # Payment disbursement item processor
+        │   └── PaymentDisbursementProcessor.java          # Payment disbursement item processor
+        ├── reader/
+        │   └── PaymentDisbursementReader.java             # Payment disbursement CSV reader
         └── writer/
-            └── PaymentDisbursementWriter.java   # Payment disbursement CSV writer
+            └── PaymentDisbursementWriter.java            # Payment disbursement CSV writer
 
 src/main/resources/
+├── application.yml                           # Application configuration
 └── data/
     └── input/
-        └── employees.csv              # Input CSV file for payment jobs
+        └── employees.csv                     # Input CSV file for payment jobs
 ```
 
 ## Features
 
-- **Payment Processing Job**: Reads employee data from CSV file (`employees.csv`), processes it (applies salary bonus and converts names to uppercase), and writes processed data to `output/processed_employees.csv`
-  - Reader: Reads from `src/main/resources/data/input/employees.csv`
-  - Processor: Applies 10% salary bonus and converts names to uppercase
-  - Writer: Writes to `output/processed_employees.csv`
-- **Payment Disbursement Job**: Reads employee data from CSV file (`employees.csv`), processes it (applies tax deduction to calculate net salary), and writes disbursed data to `output/disbursed_employees.csv`
-  - Reader: Reads from `src/main/resources/data/input/employees.csv`
-  - Processor: Applies 5% tax deduction to calculate net salary for disbursement
-  - Writer: Writes to `output/disbursed_employees.csv`
+### Payment Processing Job
+Processes employee payment data by applying bonuses and formatting employee information.
+
+- **Reader**: Reads employee data from CSV file (`data/input/employees.csv`)
+- **Processor**: 
+  - Applies configurable bonus percentage to employee salaries
+  - Converts employee names to uppercase
+- **Writer**: Writes processed data to `output/processed_employees.csv`
+- **Listeners**: 
+  - Item read listener for tracking read operations
+  - Item process listener for tracking processing operations
+  - Item write listener for tracking write operations
+  - Step execution listener for tracking step metrics and duration
+
+### Payment Disbursement Job
+Processes employee payment disbursement by calculating net salary after tax deductions.
+
+- **Reader**: Reads employee data from CSV file (`data/input/employees.csv`)
+- **Processor**: 
+  - Applies configurable tax rate to calculate net salary
+  - Calculates disbursement amounts
+- **Writer**: Writes disbursed data to `output/disbursed_employees.csv`
+- **Listeners**: 
+  - Item read listener for tracking read operations
+  - Item process listener for tracking processing operations
+  - Item write listener for tracking write operations
+  - Step execution listener for tracking step metrics and duration
+
+### Multitenancy Support
+- **Tenant Context**: Thread-local tenant context management
+- **Tenant Aspect**: AOP-based tenant filtering for database queries
+- **Entity ID Parameter**: Jobs accept `entityId` parameter for tenant isolation
+
+## Building the Project
+
+### Build the JAR file
+```bash
+mvn clean package -DskipTests
+```
+
+This will create an executable JAR file at `target/fin-ap-spring-batch-1.0.0.jar`.
 
 ## Running the Application
 
-### Build the project
-```bash
-mvn clean install
-```
+### Command-Line Job Execution
 
-### Run the application
-```bash
-mvn spring-boot:run
-```
-
-### Command-Based Job Execution
-
-The application supports command-based job execution with parameters. After building the JAR, you can run jobs with parameters:
+The application supports command-line job execution with parameters. After building the JAR, you can run jobs with parameters:
 
 #### Basic Usage
 ```bash
@@ -104,67 +149,193 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run <jobName> [param1=value1] [pa
 
 **Payment Processing Job:**
 ```bash
-# Run with default parameters (10% bonus)
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob
+# Run with default parameters (10% bonus) and tenant context
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001
 
 # Run with custom bonus percentage
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=15.0
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=15.0
 
 # Run with custom input and output files
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=custom_output.csv
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentProcessingJob entityId=TENANT001 bonusPercentage=20.0 inputFile=data/input/employees.csv outputFile=custom_output.csv
 ```
 
 **Payment Disbursement Job:**
 ```bash
-# Run with default parameters (5% tax rate)
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob
+# Run with default parameters (5% tax rate) and tenant context
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001
 
 # Run with custom tax rate
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRate=7.5
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=7.5
 
 # Run with custom input and output files
-java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv
+java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv
 ```
 
 #### Available Parameters
 
+**Common Parameters (all jobs):**
+- `entityId` (String) - **Required** - Tenant/entity identifier for multitenancy support
+
 **Payment Processing Job:**
 - `bonusPercentage` (Double) - Bonus percentage to apply (default: 10.0)
-- `inputFile` (String) - Input CSV file path (default: data/input/employees.csv)
-- `outputFile` (String) - Output CSV file name (default: processed_employees.csv)
+- `inputFile` (String) - Input CSV file path (default: `data/input/employees.csv`)
+  - Supports classpath resources (e.g., `data/input/employees.csv`)
+  - Supports absolute file paths (e.g., `C:/data/employees.csv`)
+  - Supports `classpath:` prefix (e.g., `classpath:data/input/employees.csv`)
+- `outputFile` (String) - Output CSV file name (default: `processed_employees.csv`)
+  - Output files are written to the `output/` directory
 
 **Payment Disbursement Job:**
 - `taxRate` (Double) - Tax rate percentage (default: 5.0)
-- `inputFile` (String) - Input CSV file path (default: data/input/employees.csv)
-- `outputFile` (String) - Output CSV file name (default: disbursed_employees.csv)
+- `inputFile` (String) - Input CSV file path (default: `data/input/employees.csv`)
+  - Supports classpath resources (e.g., `data/input/employees.csv`)
+  - Supports absolute file paths (e.g., `C:/data/employees.csv`)
+  - Supports `classpath:` prefix (e.g., `classpath:data/input/employees.csv`)
+- `outputFile` (String) - Output CSV file name (default: `disbursed_employees.csv`)
+  - Output files are written to the `output/` directory
 
 ## Architecture
 
-The project follows a layered architecture:
+The project follows a layered architecture with multitenancy support:
 
-- **Model Layer** (`common/model`): JPA entities extending `BaseEntity`
-- **Repository Layer** (`common/repository`): JPA repositories for data access
+- **Model Layer** (`common/model`): JPA entities extending `BaseEntity` with tenant isolation
+- **Repository Layer** (`common/repository`): JPA repositories for data access with tenant filtering
 - **Service Layer** (`common/service`): Business logic services extending `BaseService`
 - **DTO Layer** (`common/dto`): Data Transfer Objects for API/CSV processing
 - **Mapper Layer** (`common/mapper`): Entity-DTO mappers
 - **Exception Handling** (`common/exception`): Custom exceptions and global handler
 - **Utilities** (`common/util`): Common utility classes
 - **Constants** (`common/constants`): Application-wide constants
+- **Context** (`common/context`): Tenant context management
+- **Aspect** (`common/config`): AOP-based tenant filtering
+- **Runner** (`common/runner`): Command-line job execution
+
+### Batch Job Architecture
+
+Each batch job follows the Spring Batch chunk-oriented processing pattern:
+
+1. **Reader**: Step-scoped bean that reads data from CSV files
+2. **Processor**: Processes items with business logic (bonus calculation, tax deduction)
+3. **Writer**: Step-scoped bean that writes processed data to CSV files
+4. **Listeners**: Track job execution metrics and provide logging
+5. **Config**: Defines job and step configuration with step-scoped beans
 
 ## Configuration
 
-The application uses H2 in-memory database for Spring Batch metadata and JPA entities. You can access the H2 console at:
-- URL: http://localhost:8080/h2-console
-- JDBC URL: jdbc:h2:mem:batchdb
-- Username: sa
-- Password: (empty)
+### Database Configuration
 
-## Notes
+The application uses **PostgreSQL** for both Spring Batch metadata and application data:
 
-- Jobs are disabled by default on startup (set `spring.batch.job.enabled=false` in application.yml)
-- To run jobs, either enable them in application.yml or pass job names as command-line arguments
-- Payment Processing Job requires the input CSV file at `src/main/resources/data/input/employees.csv`
-- Payment Processing Job output will be written to `output/processed_employees.csv` in the project root directory
-- Payment Disbursement Job requires the input CSV file at `src/main/resources/data/input/employees.csv`
-- Payment Disbursement Job output will be written to `output/disbursed_employees.csv` in the project root directory
-- All job components (reader, processor, writer, config) are organized in their respective job folders
+- **Database**: PostgreSQL (default port: 5433)
+- **Database Name**: `erp_fin_ap`
+- **Username**: `postgres`
+- **Password**: `postgres`
+
+Update `src/main/resources/application.yml` to configure your database connection:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/erp_fin_ap
+    username: postgres
+    password: postgres
+```
+
+### Spring Batch Configuration
+
+- **Job Execution**: Disabled by default (`spring.batch.job.enabled=false`)
+- **Schema Initialization**: Always initialize batch metadata schema (`spring.batch.jdbc.initialize-schema: always`)
+- **Chunk Size**: Default chunk size is 10 items per transaction
+
+### Hibernate Configuration
+
+- **DDL Mode**: `update` - Automatically updates database schema
+- **Dialect**: PostgreSQL dialect (explicitly configured for Hibernate 6.x)
+- **Batch Size**: 20 items per batch insert/update
+- **SQL Logging**: Enabled for debugging
+
+## Input File Format
+
+The input CSV file (`data/input/employees.csv`) should have the following format:
+
+```csv
+id,name,department,salary
+1,John Doe,Engineering,50000.00
+2,Jane Smith,Marketing,45000.00
+3,Bob Johnson,Sales,40000.00
+```
+
+**Required Columns:**
+- `id` - Employee ID (Integer)
+- `name` - Employee name (String)
+- `department` - Department name (String)
+- `salary` - Employee salary (Double)
+
+## Output Files
+
+Output files are written to the `output/` directory in the project root:
+
+- **Payment Processing**: `output/processed_employees.csv`
+- **Payment Disbursement**: `output/disbursed_employees.csv`
+
+Output files include headers and maintain the same column structure as input files.
+
+## Technical Notes
+
+### Spring Batch 5.x Compatibility
+
+- **ItemWriteListener**: `beforeWrite`, `afterWrite`, and `onWriteError` are default methods (no `@Override` needed)
+- **Step Execution Times**: Uses `LocalDateTime` instead of `Date` for step execution times
+- **Page API**: Uses `PageImpl` instead of `Page.of()` for pagination
+
+### Hibernate 6.x Compatibility
+
+- **Column Definitions**: Uses `columnDefinition` for numeric precision/scale instead of `precision` and `scale` attributes
+- **Dialect**: Explicitly configured PostgreSQL dialect (auto-detection may fail without JDBC metadata)
+
+### Resource Handling
+
+- **Classpath Resources**: When running from JAR, relative paths (e.g., `data/input/employees.csv`) are treated as classpath resources
+- **File System Resources**: Absolute paths and paths with `/` or `\` are treated as file system resources
+- **Step-Scoped Beans**: Readers and writers are step-scoped to properly handle job parameters
+
+### Web Server
+
+- **Automatic Disabling**: Web server is automatically disabled when command-line arguments are provided
+- **No Port Conflicts**: Prevents port conflicts when running batch jobs from command line
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Bean Definition Conflicts**: Ensure `@Component` annotations are removed from reader and writer classes (they should be step-scoped beans)
+
+2. **Resource Not Found**: Verify the input CSV file exists in `src/main/resources/data/input/employees.csv` or provide an absolute path
+
+3. **Database Connection**: Ensure PostgreSQL is running and accessible at the configured URL
+
+4. **Parameter Type Errors**: Job parameters can be passed as strings, numbers, or dates - the application handles type conversion automatically
+
+5. **Multitenancy**: Always provide `entityId` parameter when running jobs to ensure proper tenant isolation
+
+## Dependencies
+
+Key dependencies include:
+
+- Spring Boot 3.3.0
+- Spring Batch 5.1.2
+- Spring Data JPA
+- PostgreSQL Driver
+- Hibernate 6.x
+- Spring AOP (for multitenancy aspects)
+- Spring Web (for exception handling)
+
+See `pom.xml` for complete dependency list.
+
+## License
+
+[Add your license information here]
+
+## Contributing
+
+[Add contribution guidelines here]
