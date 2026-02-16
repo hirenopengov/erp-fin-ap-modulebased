@@ -28,33 +28,38 @@ public class JobCommandLineRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (args.length == 0) {
-            printUsage();
-            return;
-        }
-
-        String command = args[0].toLowerCase();
-
-        switch (command) {
-            case "run":
-                if (args.length < 2) {
-                    logger.error("Job name is required. Usage: run <jobName> [param1=value1] [param2=value2] ...");
-                    printUsage();
-                    return;
-                }
-                runJob(args);
-                break;
-            case "list":
-                listJobs();
-                break;
-            case "help":
-            default:
+        try {
+            if (args.length == 0) {
                 printUsage();
-                break;
+                return;
+            }
+
+            String command = args[0].toLowerCase();
+
+            switch (command) {
+                case "run":
+                    if (args.length < 2) {
+                        logger.error("Job name is required. Usage: run <jobName> [param1=value1] [param2=value2] ...");
+                        printUsage();
+                        return;
+                    }
+                    runJob(args);
+                    break;
+                case "list":
+                    listJobs();
+                    break;
+                case "help":
+                default:
+                    printUsage();
+                    break;
+            }
+        } catch (Exception e) {
+            logger.error("Error in CommandLineRunner", e);
+            throw e;
         }
     }
 
-    private void runJob(String[] args) {
+    private void runJob(String[] args) throws Exception {
         try {
             String jobName = args[1];
             Job job = jobRegistry.getJob(jobName);
@@ -70,8 +75,10 @@ public class JobCommandLineRunner implements CommandLineRunner {
             logger.error("Job not found: {}", args[1]);
             logger.info("Available jobs:");
             listJobs();
+            throw e;
         } catch (Exception e) {
             logger.error("Error executing job", e);
+            throw e;
         }
     }
 

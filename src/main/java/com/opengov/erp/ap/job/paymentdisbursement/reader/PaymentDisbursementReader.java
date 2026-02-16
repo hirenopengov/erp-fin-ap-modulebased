@@ -4,6 +4,7 @@ import com.opengov.erp.ap.common.constants.Constants;
 import com.opengov.erp.ap.common.dto.EmployeeCSVDTO;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.BeforeStep;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -22,6 +23,7 @@ public class PaymentDisbursementReader {
         this.stepExecution = stepExecution;
     }
 
+    @StepScope
     public FlatFileItemReader<EmployeeCSVDTO> reader() {
         // Get input file from job parameters, default to classpath resource
         String inputFile = stepExecution != null && stepExecution.getJobParameters().getString("inputFile") != null

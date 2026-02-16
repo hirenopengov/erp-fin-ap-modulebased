@@ -3,6 +3,7 @@ package com.opengov.erp.ap.common.service;
 import com.opengov.erp.ap.common.context.TenantContext;
 import com.opengov.erp.ap.common.repository.BaseRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -30,7 +31,7 @@ public abstract class BaseService<T, ID> {
         List<T> all = findAll();
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), all.size());
-        return org.springframework.data.domain.Page.of(all.subList(start, end), pageable, all.size());
+        return new PageImpl<>(all.subList(start, end), pageable, all.size());
     }
 
     public Optional<T> findById(ID id) {

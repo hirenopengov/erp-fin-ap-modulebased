@@ -8,6 +8,9 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 @Component
 public class PaymentProcessingStepListener implements StepExecutionListener {
 
@@ -70,9 +73,15 @@ public class PaymentProcessingStepListener implements StepExecutionListener {
         logger.info("[Payment Processing - STEP END]   - Commits: {}", stepExecution.getCommitCount());
         logger.info("[Payment Processing - STEP END]   - Rollbacks: {}", stepExecution.getRollbackCount());
         
-        long duration = stepExecution.getEndTime().getTime() - stepExecution.getStartTime().getTime();
-        logger.info("[Payment Processing - STEP END] Execution Duration: {} ms ({} seconds)", 
-                duration, String.format("%.2f", duration / 1000.0));
+        LocalDateTime startTime = stepExecution.getStartTime();
+        LocalDateTime endTime = stepExecution.getEndTime();
+        if (startTime != null && endTime != null) {
+            long duration = Duration.between(startTime, endTime).toMillis();
+            logger.info("[Payment Processing - STEP END] Execution Duration: {} ms ({} seconds)", 
+                    duration, String.format("%.2f", duration / 1000.0));
+        } else {
+            logger.warn("[Payment Processing - STEP END] Execution Duration: Unable to calculate (startTime or endTime is null)");
+        }
         logger.info("========================================");
         
         // Clear tenant context after step completion

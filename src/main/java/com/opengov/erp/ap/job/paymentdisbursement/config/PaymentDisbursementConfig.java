@@ -54,12 +54,12 @@ public class PaymentDisbursementConfig {
     @Bean
     public Job paymentDisbursementJob() {
         return new JobBuilder(Constants.BatchJob.PAYMENT_DISBURSEMENT, jobRepository)
-                .start(step1())
+                .start(paymentDisbursementStep())
                 .build();
     }
 
     @Bean
-    public Step step1() {
+    public Step paymentDisbursementStep() {
         return new StepBuilder("paymentDisbursementStep", jobRepository)
                 .<EmployeeCSVDTO, EmployeeCSVDTO>chunk(Constants.BatchJob.DEFAULT_CHUNK_SIZE, transactionManager)
                 .reader(paymentDisbursementReader.reader())

@@ -15,7 +15,7 @@ public class Employee extends BaseEntity {
     @Column(name = "department", length = 50)
     private String department;
 
-    @Column(name = "salary", precision = 10, scale = 2)
+    @Column(name = "salary", columnDefinition = "NUMERIC(10,2)")
     private Double salary;
 
     @Column(name = "status", length = 20)

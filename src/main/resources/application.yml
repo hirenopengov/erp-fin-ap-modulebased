@@ -3,10 +3,10 @@ spring:
     name: fin-ap-spring-batch
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/fin_ap_batch
+    url: jdbc:postgresql://localhost:5433/erp_fin_ap
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: postgres
+    password: postgres
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5

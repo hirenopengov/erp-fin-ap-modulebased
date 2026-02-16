@@ -4,6 +4,7 @@ import com.opengov.erp.ap.common.constants.Constants;
 import com.opengov.erp.ap.common.dto.EmployeeCSVDTO;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.BeforeStep;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.core.io.FileSystemResource;
@@ -21,6 +22,7 @@ public class PaymentDisbursementWriter {
         this.stepExecution = stepExecution;
     }
 
+    @StepScope
     public FlatFileItemWriter<EmployeeCSVDTO> writer() {
         // Get output file from job parameters, default to disbursed_employees.csv
         String outputFile = stepExecution != null && stepExecution.getJobParameters().getString("outputFile") != null

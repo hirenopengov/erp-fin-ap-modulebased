@@ -4,15 +4,14 @@ import com.opengov.erp.ap.common.constants.Constants;
 import com.opengov.erp.ap.common.dto.EmployeeCSVDTO;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.BeforeStep;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Component;
 
-@Component
 public class PaymentProcessingReader {
 
     private StepExecution stepExecution;
@@ -22,6 +21,7 @@ public class PaymentProcessingReader {
         this.stepExecution = stepExecution;
     }
 
+    @StepScope
     public FlatFileItemReader<EmployeeCSVDTO> reader() {
         // Get input file from job parameters, default to classpath resource
         String inputFile = stepExecution != null && stepExecution.getJobParameters().getString("inputFile") != null
@@ -29,7 +29,7 @@ public class PaymentProcessingReader {
                 : Constants.FilePaths.INPUT_DIR + Constants.FilePaths.EMPLOYEES_CSV;
 
         Resource resource;
-        if (inputFile.startsWith("classpath:") || !inputFile.contains("/") && !inputFile.contains("\\")) {
+        if (inputFile.startsWith("classpath:") || (!inputFile.contains("/") && !inputFile.contains("\\"))) {
             // Use classpath resource
             String classpathFile = inputFile.startsWith("classpath:") ? inputFile.substring(10) : inputFile;
             resource = new ClassPathResource(classpathFile);
