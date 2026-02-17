@@ -25,8 +25,7 @@
 -- before being referenced in table definitions.
 
 -- Payment run type enumeration
--- Note: Consider renaming to ap_payment_run_type for consistency with other enums
-CREATE TYPE IF NOT EXISTS payment_run_type AS ENUM (
+CREATE TYPE IF NOT EXISTS ap_payment_run_type AS ENUM (
     'REGULAR',
     'MANUAL',
     'EMERGENCY',
@@ -34,16 +33,14 @@ CREATE TYPE IF NOT EXISTS payment_run_type AS ENUM (
 );
 
 -- Payment method enumeration (used in payment_run and payment_register)
--- Note: Consider renaming to ap_payment_method for consistency with other enums
-CREATE TYPE IF NOT EXISTS payment_method AS ENUM (
+CREATE TYPE IF NOT EXISTS ap_payment_method AS ENUM (
     'CHECK',
     'ACH',
     'WIRE'
 );
 
 -- Payment run status enumeration
--- Note: Consider renaming to ap_payment_run_status for consistency with other enums
-CREATE TYPE IF NOT EXISTS payment_run_status AS ENUM (
+CREATE TYPE IF NOT EXISTS ap_payment_run_status AS ENUM (
     'DRAFT',
     'SUBMITTED',
     'PREPARING',
@@ -167,12 +164,12 @@ CREATE TABLE ap_payment_run (
     entity_id UUID NOT NULL,
     run_number VARCHAR(20) NOT NULL,
     run_description VARCHAR(200),
-    run_type payment_run_type NOT NULL,
-    payment_method payment_method NOT NULL,
+    run_type ap_payment_run_type NOT NULL,
+    payment_method ap_payment_method NOT NULL,
     bank_account_id UUID NOT NULL,
     payment_date DATE NOT NULL,
     remittance_message_template_id UUID,
-    status payment_run_status NOT NULL DEFAULT 'DRAFT',
+    status ap_payment_run_status NOT NULL DEFAULT 'DRAFT',
     -- Spring Batch job execution IDs (references BATCH_JOB_EXECUTION.JOB_EXECUTION_ID)
     prepare_job_execution_id BIGINT,
     process_job_execution_id BIGINT,
@@ -204,14 +201,8 @@ CREATE TABLE ap_payment_run (
         UNIQUE (entity_id, run_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_pay_payment_run_entity 
-    ON ap_payment_run(entity_id);
-
 CREATE INDEX IF NOT EXISTS idx_pay_payment_run_status 
     ON ap_payment_run(status);
-
-CREATE INDEX IF NOT EXISTS idx_pay_payment_run_entity_run_number 
-    ON ap_payment_run(entity_id, run_number);
 
 CREATE INDEX IF NOT EXISTS idx_pay_payment_run_payment_date 
     ON ap_payment_run(payment_date);
@@ -220,6 +211,8 @@ CREATE INDEX IF NOT EXISTS idx_pay_payment_run_bank_account
     ON ap_payment_run(bank_account_id);
 
 -- Composite index for common query patterns (entity + status)
+-- Note: This index covers entity_id queries, so idx_pay_payment_run_entity is redundant
+-- Note: Unique constraint uk_payment_run_entity_run_number already creates index on (entity_id, run_number)
 CREATE INDEX IF NOT EXISTS idx_pay_payment_run_entity_status 
     ON ap_payment_run(entity_id, status);
 
@@ -308,10 +301,12 @@ CREATE TABLE ap_payment_register (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entity_id UUID NOT NULL,
     payment_run_id UUID NOT NULL,
+    payment_register_id VARCHAR(50),
+    payment_id VARCHAR(50),
     proposal_version INT NOT NULL,
     superseded_at TIMESTAMPTZ,
     payment_number VARCHAR(20),
-    payment_method payment_method NOT NULL,
+    payment_method ap_payment_method NOT NULL,
     payment_date DATE NOT NULL,
     bank_account_id UUID NOT NULL,
     vendor_id UUID NOT NULL,
@@ -366,6 +361,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_ap_payment_register_entity_payment_number
 CREATE INDEX IF NOT EXISTS idx_ap_payment_register_entity_status
     ON ap_payment_register(entity_id, payment_status);
 
+CREATE INDEX IF NOT EXISTS idx_ap_payment_register_payment_register_id
+    ON ap_payment_register(payment_register_id)
+    WHERE payment_register_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_ap_payment_register_payment_id
+    ON ap_payment_register(payment_id)
+    WHERE payment_id IS NOT NULL;
+
 -- ============================================
 -- AP_PAYMENT_REGISTER_LINE
 -- ============================================
@@ -384,6 +387,7 @@ CREATE TABLE ap_payment_register_line (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entity_id UUID NOT NULL,
     payment_register_id UUID NOT NULL,
+    payment_id VARCHAR(50),
     invoice_id UUID,
     invoice_number VARCHAR(255) NOT NULL,
     invoice_amount DECIMAL(18,4) NOT NULL,
@@ -396,6 +400,11 @@ CREATE TABLE ap_payment_register_line (
     CONSTRAINT fk_payment_line_payment_register
         FOREIGN KEY (payment_register_id)
         REFERENCES ap_payment_register(id) ON DELETE CASCADE,
+    -- Note: Foreign key constraint for invoice_id is not added as it may reference
+    -- an external invoice table. Add FK constraint when invoice table is available:
+    -- CONSTRAINT fk_payment_line_invoice
+    --     FOREIGN KEY (invoice_id)
+    --     REFERENCES ap_invoice(id),
     CONSTRAINT chk_invoice_amount_positive 
         CHECK (invoice_amount > 0),
     CONSTRAINT chk_discount_amount_valid 
@@ -412,6 +421,10 @@ CREATE INDEX IF NOT EXISTS idx_pay_payment_line_payment_register
 
 CREATE INDEX IF NOT EXISTS idx_pay_payment_line_invoice 
     ON ap_payment_register_line(invoice_id);
+
+CREATE INDEX IF NOT EXISTS idx_pay_payment_line_payment_id
+    ON ap_payment_register_line(payment_id)
+    WHERE payment_id IS NOT NULL;
 
 -- ============================================
 -- AP_PAYMENT_RUN_JOB
@@ -480,8 +493,8 @@ CREATE TABLE ap_payment_run_transition (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entity_id UUID NOT NULL,
     payment_run_id UUID NOT NULL,
-    from_status VARCHAR(50) NOT NULL,
-    to_status VARCHAR(50) NOT NULL,
+    from_status ap_payment_run_status NOT NULL,
+    to_status ap_payment_run_status NOT NULL,
     event VARCHAR(50),
     notes TEXT,
     job_type ap_job_type,
@@ -509,6 +522,51 @@ CREATE INDEX IF NOT EXISTS ix_ap_payment_run_transition_job
 CREATE INDEX IF NOT EXISTS ix_ap_payment_run_transition_job_type
     ON ap_payment_run_transition(job_type)
     WHERE job_type IS NOT NULL;
+
+-- ============================================
+-- TRIGGERS
+-- ============================================
+-- Auto-update updated_at column on row updates
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_ap_bank_account_updated_at
+    BEFORE UPDATE ON ap_bank_account
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_remittance_message_template_updated_at
+    BEFORE UPDATE ON ap_remittance_message_template
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_run_updated_at
+    BEFORE UPDATE ON ap_payment_run
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_run_invoice_updated_at
+    BEFORE UPDATE ON ap_payment_run_invoice
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_register_updated_at
+    BEFORE UPDATE ON ap_payment_register
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_register_line_updated_at
+    BEFORE UPDATE ON ap_payment_register_line
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_run_job_updated_at
+    BEFORE UPDATE ON ap_payment_run_job
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ap_payment_run_transition_updated_at
+    BEFORE UPDATE ON ap_payment_run_transition
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- END OF FILE
