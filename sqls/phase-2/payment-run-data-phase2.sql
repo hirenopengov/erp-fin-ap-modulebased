@@ -28,10 +28,16 @@ TRUNCATE TABLE pr_ap_invoice_header CASCADE;
 -- Invoices
 -- 22222222-2222-2222-2222-222222222221
 -- 22222222-2222-2222-2222-222222222222
+-- 22222222-2222-2222-2222-222222222223 (same vendor as 221)
+-- 22222222-2222-2222-2222-222222222224 (same vendor as 221)
+-- 22222222-2222-2222-2222-222222222225 (same vendor as 221)
 
 -- Payables
 -- 33333333-3333-3333-3333-333333333331
 -- 33333333-3333-3333-3333-333333333332
+-- 33333333-3333-3333-3333-333333333333
+-- 33333333-3333-3333-3333-333333333334
+-- 33333333-3333-3333-3333-333333333335
 
 -- Payment Run
 -- 44444444-4444-4444-4444-444444444441
@@ -39,6 +45,9 @@ TRUNCATE TABLE pr_ap_invoice_header CASCADE;
 -- Run Items
 -- 55555555-5555-5555-5555-555555555551
 -- 55555555-5555-5555-5555-555555555552
+-- 55555555-5555-5555-5555-555555555553
+-- 55555555-5555-5555-5555-555555555554
+-- 55555555-5555-5555-5555-555555555555
 
 
 -- ============================================================
@@ -80,6 +89,57 @@ VALUES
     'STANDARD',
     'APPROVED',
     'IMPORT',
+    false,
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '22222222-2222-2222-2222-222222222223',
+    '11111111-1111-1111-1111-111111111111',
+    10003,
+    5001,
+    'USD',
+    1500.00,
+    CURRENT_DATE + INTERVAL '10 days',
+    'STANDARD',
+    'APPROVED',
+    'MANUAL',
+    false,
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '22222222-2222-2222-2222-222222222224',
+    '11111111-1111-1111-1111-111111111111',
+    10004,
+    5001,
+    'USD',
+    3200.00,
+    CURRENT_DATE + INTERVAL '25 days',
+    'STANDARD',
+    'APPROVED',
+    'IMPORT',
+    false,
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '22222222-2222-2222-2222-222222222225',
+    '11111111-1111-1111-1111-111111111111',
+    10005,
+    5001,
+    'USD',
+    850.00,
+    CURRENT_DATE + INTERVAL '12 days',
+    'STANDARD',
+    'APPROVED',
+    'MANUAL',
     false,
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     now(),
@@ -152,6 +212,51 @@ VALUES
     now(),
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     now()
+),
+(
+    '33333333-3333-3333-3333-333333333333',
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222223',
+    'INVOICE',
+    'USD',
+    1500.00,
+    1500.00,
+    CURRENT_DATE + INTERVAL '10 days',
+    'OPEN',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '33333333-3333-3333-3333-333333333334',
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222224',
+    'INVOICE',
+    'USD',
+    3200.00,
+    3200.00,
+    CURRENT_DATE + INTERVAL '25 days',
+    'OPEN',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '33333333-3333-3333-3333-333333333335',
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222225',
+    'INVOICE',
+    'USD',
+    850.00,
+    850.00,
+    CURRENT_DATE + INTERVAL '12 days',
+    'OPEN',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
 );
 
 
@@ -195,6 +300,54 @@ VALUES
     2500.00,
     0.00,
     'CHECK',
+    CURRENT_DATE + INTERVAL '5 days',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '55555555-5555-5555-5555-555555555553',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444441',
+    '33333333-3333-3333-3333-333333333333',
+    'INCLUDED',
+    true,
+    1500.00,
+    0.00,
+    'ACH',
+    CURRENT_DATE + INTERVAL '5 days',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '55555555-5555-5555-5555-555555555554',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444441',
+    '33333333-3333-3333-3333-333333333334',
+    'INCLUDED',
+    true,
+    3200.00,
+    0.00,
+    'ACH',
+    CURRENT_DATE + INTERVAL '5 days',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now(),
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    now()
+),
+(
+    '55555555-5555-5555-5555-555555555555',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444441',
+    '33333333-3333-3333-3333-333333333335',
+    'INCLUDED',
+    true,
+    850.00,
+    0.00,
+    'ACH',
     CURRENT_DATE + INTERVAL '5 days',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     now(),

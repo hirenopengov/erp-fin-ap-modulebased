@@ -3,7 +3,7 @@ spring:
     name: fin-ap-spring-batch
   
   datasource:
-    url: jdbc:postgresql://localhost:5433/erp_fin_ap
+    url: jdbc:postgresql://localhost:5433/erp_fin_ap_phase1
     driver-class-name: org.postgresql.Driver
     username: postgres
     password: postgres
