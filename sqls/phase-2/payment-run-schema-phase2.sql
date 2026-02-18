@@ -4,7 +4,31 @@
 -- ============================================================
 
 -- ============================================================
--- ENUM TYPES
+-- DROP TABLES (in reverse dependency order)
+-- ============================================================
+
+DROP TABLE IF EXISTS pr_ap_payment_register CASCADE;
+DROP TABLE IF EXISTS pr_ap_payment_artifact CASCADE;
+DROP TABLE IF EXISTS pr_ap_payable_run_item CASCADE;
+DROP TABLE IF EXISTS pr_ap_payable CASCADE;
+DROP TABLE IF EXISTS pr_ap_payment_run_workflow CASCADE;
+DROP TABLE IF EXISTS pr_ap_invoice_header CASCADE;
+
+-- ============================================================
+-- DROP ENUM TYPES
+-- ============================================================
+
+DROP TYPE IF EXISTS ap_payable_status CASCADE;
+DROP TYPE IF EXISTS ap_payable_run_item_status CASCADE;
+DROP TYPE IF EXISTS ap_payment_run_status CASCADE;
+DROP TYPE IF EXISTS ap_payment_method CASCADE;
+DROP TYPE IF EXISTS ap_payment_artifact_type CASCADE;
+DROP TYPE IF EXISTS ap_payment_artifact_status CASCADE;
+DROP TYPE IF EXISTS ap_payment_register_status CASCADE;
+DROP TYPE IF EXISTS invoice_source CASCADE;
+
+-- ============================================================
+-- CREATE ENUM TYPES
 -- ============================================================
 
 CREATE TYPE ap_payable_status AS ENUM ('OPEN', 'CLOSED', 'VOID');
@@ -31,10 +55,9 @@ CREATE TYPE ap_payment_register_status AS ENUM ('ISSUED', 'VOIDED', 'REVERSED', 
 CREATE TYPE invoice_source AS ENUM ('MANUAL', 'IMPORT', 'INTEGRATION', 'OTHER');
 
 -- ============================================================
--- TABLES
+-- CREATE TABLES
 -- ============================================================
 
-DROP TABLE IF EXISTS pr_ap_invoice_header;
 CREATE TABLE pr_ap_invoice_header (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,
@@ -65,7 +88,6 @@ CREATE INDEX ix_ap_invoice_vendor
 CREATE INDEX ix_ap_invoice_status
   ON pr_ap_invoice_header (entity_id, invoice_status);
 
-DROP TABLE IF EXISTS pr_ap_payable;
 CREATE TABLE pr_ap_payable (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,
@@ -109,7 +131,6 @@ CREATE INDEX ix_ap_payable_entity_status_due
 CREATE INDEX ix_ap_payable_invoice_type
   ON pr_ap_payable (entity_id, invoice_id, payable_type);
 
-DROP TABLE IF EXISTS pr_ap_payment_run_workflow;
 CREATE TABLE pr_ap_payment_run_workflow (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,
@@ -154,7 +175,6 @@ CREATE TABLE pr_ap_payment_run_workflow (
 CREATE INDEX ix_ap_payment_run_status
   ON pr_ap_payment_run_workflow (entity_id, status);
 
-DROP TABLE IF EXISTS pr_ap_payable_run_item;
 CREATE TABLE pr_ap_payable_run_item (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,
@@ -205,7 +225,6 @@ CREATE INDEX ix_ap_payable_run_item_run_status
 CREATE INDEX ix_ap_payable_run_item_payable
   ON pr_ap_payable_run_item (payable_id);
 
-DROP TABLE IF EXISTS pr_ap_payment_artifact;
 CREATE TABLE pr_ap_payment_artifact (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,
@@ -243,7 +262,6 @@ CREATE INDEX ix_ap_payment_artifact_run
 CREATE INDEX ix_ap_payment_artifact_type_status
   ON pr_ap_payment_artifact (entity_id, artifact_type, status);
 
-DROP TABLE IF EXISTS pr_ap_payment_register;
 CREATE TABLE pr_ap_payment_register (
   id uuid PRIMARY KEY NOT NULL,
   entity_id uuid NOT NULL,

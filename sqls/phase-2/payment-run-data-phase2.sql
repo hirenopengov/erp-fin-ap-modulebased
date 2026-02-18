@@ -9,13 +9,15 @@
 -- ============================================================
 
 -- ============================================================
--- TRUNCATE (respect FK order)
+-- TRUNCATE (respect FK order - child tables first)
 -- ============================================================
 
-TRUNCATE TABLE pr_ap_payable_run_item;
-TRUNCATE TABLE pr_ap_payable;
-TRUNCATE TABLE pr_ap_payment_run_workflow;
-TRUNCATE TABLE pr_ap_invoice_header;
+TRUNCATE TABLE pr_ap_payment_register CASCADE;
+TRUNCATE TABLE pr_ap_payment_artifact CASCADE;
+TRUNCATE TABLE pr_ap_payable_run_item CASCADE;
+TRUNCATE TABLE pr_ap_payable CASCADE;
+TRUNCATE TABLE pr_ap_payment_run_workflow CASCADE;
+TRUNCATE TABLE pr_ap_invoice_header CASCADE;
 
 -- ============================================================
 -- SAMPLE CONSTANT IDS
