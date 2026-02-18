@@ -2,6 +2,7 @@ package com.opengov.erp.ap.job.paymentprocessing.config;
 
 import com.opengov.erp.ap.common.constants.Constants;
 import com.opengov.erp.ap.common.dto.EmployeeCSVDTO;
+import com.opengov.erp.ap.common.validator.EntityIdJobParametersValidator;
 import com.opengov.erp.ap.job.paymentprocessing.listener.PaymentProcessingItemProcessListener;
 import com.opengov.erp.ap.job.paymentprocessing.listener.PaymentProcessingItemReadListener;
 import com.opengov.erp.ap.job.paymentprocessing.listener.PaymentProcessingItemWriteListener;
@@ -56,6 +57,7 @@ public class PaymentProcessingConfig {
     @Bean
     public Job paymentProcessingJob() {
         return new JobBuilder(Constants.BatchJob.PAYMENT_PROCESSING, jobRepository)
+                .validator(new EntityIdJobParametersValidator())
                 .start(paymentProcessingStep())
                 .build();
     }

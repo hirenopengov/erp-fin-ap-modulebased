@@ -1,6 +1,6 @@
 # ERP Financial AP - Spring Batch Module
 
-Enterprise Resource Planning (ERP) Financial Accounts Payable batch processing module built with Spring Boot 3.3 and Spring Batch 5.x. This module provides batch processing capabilities for payment processing and disbursement operations with multitenancy support.
+Enterprise Resource Planning (ERP) Financial Accounts Payable batch processing module built with Spring Boot 3.3 and Spring Batch 5.x. This module provides batch processing capabilities for payment processing, disbursement operations, and payable summary generation with multitenancy support and external vendor API integration.
 
 ## Requirements
 
@@ -27,7 +27,11 @@ src/main/java/com/opengov/erp/ap/
 │   │   └── TenantContext.java                # Tenant context holder
 │   ├── dto/
 │   │   ├── EmployeeDTO.java                  # Employee DTO
-│   │   └── EmployeeCSVDTO.java               # Employee CSV DTO
+│   │   ├── EmployeeCSVDTO.java               # Employee CSV DTO
+│   │   ├── PayableSummaryCSVDTO.java         # Payable Summary CSV DTO
+│   │   ├── VendorDTO.java                    # Vendor DTO
+│   │   ├── VendorAddressDTO.java            # Vendor Address DTO
+│   │   └── VendorContactDTO.java            # Vendor Contact DTO
 │   ├── exception/
 │   │   ├── ResourceNotFoundException.java   # Custom exception
 │   │   └── GlobalExceptionHandler.java       # Global exception handler
@@ -44,6 +48,7 @@ src/main/java/com/opengov/erp/ap/
 │   ├── service/
 │   │   ├── BaseService.java                  # Base service class
 │   │   ├── EmployeeService.java              # Employee service
+│   │   ├── VendorService.java                # Vendor service (external API integration)
 │   │   └── JobLauncherService.java           # Job launcher service
 │   └── util/
 │       ├── DateUtil.java                     # Date utility
@@ -63,20 +68,34 @@ src/main/java/com/opengov/erp/ap/
     │   │   └── PaymentProcessingReader.java              # Payment processing CSV reader
     │   └── writer/
     │       └── PaymentProcessingWriter.java             # Payment processing CSV writer
-    └── paymentdisbursement/
+    ├── paymentdisbursement/
+    │   ├── config/
+    │   │   └── PaymentDisbursementConfig.java            # Payment disbursement job configuration
+    │   ├── listener/
+    │   │   ├── PaymentDisbursementItemReadListener.java  # Item read listener
+    │   │   ├── PaymentDisbursementItemProcessListener.java # Item process listener
+    │   │   ├── PaymentDisbursementItemWriteListener.java   # Item write listener
+    │   │   └── PaymentDisbursementStepListener.java         # Step execution listener
+    │   ├── processor/
+    │   │   └── PaymentDisbursementProcessor.java          # Payment disbursement item processor
+    │   ├── reader/
+    │   │   └── PaymentDisbursementReader.java             # Payment disbursement CSV reader
+    │   └── writer/
+    │       └── PaymentDisbursementWriter.java            # Payment disbursement CSV writer
+    └── payablesummary/
         ├── config/
-        │   └── PaymentDisbursementConfig.java            # Payment disbursement job configuration
+        │   └── PayableSummaryConfig.java                 # Payable summary job configuration
         ├── listener/
-        │   ├── PaymentDisbursementItemReadListener.java  # Item read listener
-        │   ├── PaymentDisbursementItemProcessListener.java # Item process listener
-        │   ├── PaymentDisbursementItemWriteListener.java   # Item write listener
-        │   └── PaymentDisbursementStepListener.java         # Step execution listener
+        │   ├── PayableSummaryItemReadListener.java       # Item read listener
+        │   ├── PayableSummaryItemProcessListener.java    # Item process listener
+        │   ├── PayableSummaryItemWriteListener.java      # Item write listener
+        │   └── PayableSummaryStepListener.java           # Step execution listener
         ├── processor/
-        │   └── PaymentDisbursementProcessor.java          # Payment disbursement item processor
+        │   └── PayableSummaryProcessor.java              # Payable summary item processor
         ├── reader/
-        │   └── PaymentDisbursementReader.java             # Payment disbursement CSV reader
+        │   └── PayableSummaryReader.java                 # Payable summary database reader
         └── writer/
-            └── PaymentDisbursementWriter.java            # Payment disbursement CSV writer
+            └── PayableSummaryWriter.java                 # Payable summary CSV writer
 
 src/main/resources/
 ├── application.yml                           # Application configuration
@@ -90,11 +109,12 @@ src/main/resources/
 ### Payment Processing Job
 Processes employee payment data by applying bonuses and formatting employee information.
 
-- **Reader**: Reads employee data from CSV file (`data/input/employees.csv`)
+- **Reader**: Reads employee data from CSV file using `FlatFileItemReader` (supports classpath, absolute paths, and `classpath:` prefix)
 - **Processor**: 
-  - Applies configurable bonus percentage to employee salaries
+  - Applies configurable bonus percentage to employee salaries (default: 10%)
   - Converts employee names to uppercase
-- **Writer**: Writes processed data to `output/processed_employees.csv`
+  - Supports flexible parameter type handling (Double, Long, or String)
+- **Writer**: Writes processed data to `output/processed_employees.csv` using `FlatFileItemWriter`
 - **Listeners**: 
   - Item read listener for tracking read operations
   - Item process listener for tracking processing operations
@@ -114,6 +134,40 @@ Processes employee payment disbursement by calculating net salary after tax dedu
   - Item process listener for tracking processing operations
   - Item write listener for tracking write operations
   - Step execution listener for tracking step metrics and duration
+
+### Payable Summary Job
+Generates a summary of payables aggregated by vendor from the database, enriched with vendor information from external API.
+
+- **Reader**: Reads payable data from PostgreSQL database using `JdbcCursorItemReader`
+  - Aggregates payables by vendor from `pr_ap_payable_run_item`, `pr_ap_payable`, and `pr_ap_invoice_header` tables
+  - Filters by `paymentRunId` and `entityId` parameters
+  - Calculates total payable amount and invoice count per vendor
+- **Processor**: 
+  - Generates unique reference number for each vendor row
+  - Sets status to "DRAFT"
+  - Adds timestamp (UTC) when file is generated
+  - Fetches vendor address from external Vendor API using `VendorService`
+  - Validates vendor existence before fetching address
+- **Writer**: Writes summary data to `output/PayableSummary.csv`
+  - Custom field extractor formats `dateCreated` as ISO-8601 string
+  - Output columns: `vendorId`, `vendorNumber`, `totalPayableAmount`, `invoiceCount`, `referenceNumber`, `status`, `dateCreated`, `address`
+- **Listeners**: 
+  - Item read listener for tracking read operations
+  - Item process listener for tracking processing operations
+  - Item write listener for tracking write operations
+  - Step execution listener for tracking step metrics and duration
+
+### External Vendor API Integration
+The module integrates with an external Vendor API for fetching vendor information:
+
+- **VendorService**: Service for vendor-related operations
+  - Checks vendor existence using HEAD requests
+  - Fetches vendor details including addresses
+  - API Endpoint: `GET /api/v1/entities/:entityId/vendors/:id`
+  - Supports optional `include` parameter for field selection
+- **Configuration**: Vendor API settings in `application.yml`
+  - `vendor.api.base-url`: Base URL for vendor API (default: `http://test.vendor.api`)
+  - `vendor.api.timeout`: Request timeout in milliseconds (default: 5000)
 
 ### Multitenancy Support
 - **Tenant Context**: Thread-local tenant context management
@@ -171,6 +225,15 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entity
 java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entityId=TENANT001 taxRate=10.0 inputFile=data/input/employees.csv outputFile=disbursed_output.csv
 ```
 
+**Payable Summary Job:**
+```bash
+# Run with required parameters (paymentRunId and entityId)
+java -jar target/fin-ap-spring-batch-1.0.0.jar run payableSummaryJob entityId=550e8400-e29b-41d4-a716-446655440000 paymentRunId=123e4567-e89b-12d3-a456-426614174000
+
+# Example with UUID parameters
+java -jar target/fin-ap-spring-batch-1.0.0.jar run payableSummaryJob entityId=550e8400-e29b-41d4-a716-446655440000 paymentRunId=123e4567-e89b-12d3-a456-426614174000
+```
+
 #### Available Parameters
 
 **Common Parameters (all jobs):**
@@ -194,6 +257,11 @@ java -jar target/fin-ap-spring-batch-1.0.0.jar run paymentDisbursementJob entity
 - `outputFile` (String) - Output CSV file name (default: `disbursed_employees.csv`)
   - Output files are written to the `output/` directory
 
+**Payable Summary Job:**
+- `paymentRunId` (UUID String) - **Required** - Payment run identifier for filtering payables
+- `entityId` (UUID String) - **Required** - Tenant/entity identifier for multitenancy support and vendor API calls
+- Output file is always written to `output/PayableSummary.csv` (not configurable)
+
 ## Architecture
 
 The project follows a layered architecture with multitenancy support:
@@ -214,11 +282,18 @@ The project follows a layered architecture with multitenancy support:
 
 Each batch job follows the Spring Batch chunk-oriented processing pattern:
 
-1. **Reader**: Step-scoped bean that reads data from CSV files
-2. **Processor**: Processes items with business logic (bonus calculation, tax deduction)
+1. **Reader**: Step-scoped bean that reads data from various sources
+   - **CSV Files**: `FlatFileItemReader` for CSV-based jobs (Payment Processing, Payment Disbursement)
+   - **Database**: `JdbcCursorItemReader` for database-based jobs (Payable Summary)
+2. **Processor**: Processes items with business logic (bonus calculation, tax deduction, vendor enrichment)
+   - Can integrate with external APIs (e.g., VendorService for vendor address lookup)
 3. **Writer**: Step-scoped bean that writes processed data to CSV files
+   - Uses `FlatFileItemWriter` with custom field extractors for complex data formatting
 4. **Listeners**: Track job execution metrics and provide logging
+   - Item-level listeners (read, process, write)
+   - Step-level listeners for overall step metrics
 5. **Config**: Defines job and step configuration with step-scoped beans
+   - Uses `@StepScope` for readers, writers, and processors that need job parameters
 
 ## Configuration
 
@@ -227,7 +302,7 @@ Each batch job follows the Spring Batch chunk-oriented processing pattern:
 The application uses **PostgreSQL** for both Spring Batch metadata and application data:
 
 - **Database**: PostgreSQL (default port: 5433)
-- **Database Name**: `erp_fin_ap`
+- **Database Name**: `erp_fin_ap_phase1`
 - **Username**: `postgres`
 - **Password**: `postgres`
 
@@ -236,10 +311,24 @@ Update `src/main/resources/application.yml` to configure your database connectio
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/erp_fin_ap
+    url: jdbc:postgresql://localhost:5433/erp_fin_ap_phase1
     username: postgres
     password: postgres
 ```
+
+### Vendor API Configuration
+
+The application integrates with an external Vendor API. Configure the API settings in `application.yml`:
+
+```yaml
+vendor:
+  api:
+    base-url: http://test.vendor.api
+    timeout: 5000
+```
+
+- **base-url**: Base URL for the vendor API endpoint
+- **timeout**: Request timeout in milliseconds
 
 ### Spring Batch Configuration
 
@@ -276,9 +365,15 @@ id,name,department,salary
 Output files are written to the `output/` directory in the project root:
 
 - **Payment Processing**: `output/processed_employees.csv`
+  - Columns: `id`, `name`, `department`, `salary`
 - **Payment Disbursement**: `output/disbursed_employees.csv`
+  - Columns: `id`, `name`, `department`, `salary`
+- **Payable Summary**: `output/PayableSummary.csv`
+  - Columns: `vendorId`, `vendorNumber`, `totalPayableAmount`, `invoiceCount`, `referenceNumber`, `status`, `dateCreated`, `address`
+  - `dateCreated` is formatted as ISO-8601 timestamp string
+  - `address` is fetched from external Vendor API
 
-Output files include headers and maintain the same column structure as input files.
+Output files include headers and maintain consistent column structures.
 
 ## Technical Notes
 
@@ -318,6 +413,10 @@ Output files include headers and maintain the same column structure as input fil
 
 5. **Multitenancy**: Always provide `entityId` parameter when running jobs to ensure proper tenant isolation
 
+6. **Vendor API Connection**: For Payable Summary job, ensure the vendor API is accessible and configured correctly in `application.yml`. If the API is unavailable, the job will continue but vendor addresses will be empty.
+
+7. **Database Tables**: Payable Summary job requires specific database tables (`pr_ap_payable_run_item`, `pr_ap_payable`, `pr_ap_invoice_header`). Ensure these tables exist and contain data before running the job.
+
 ## Dependencies
 
 Key dependencies include:
@@ -328,7 +427,8 @@ Key dependencies include:
 - PostgreSQL Driver
 - Hibernate 6.x
 - Spring AOP (for multitenancy aspects)
-- Spring Web (for exception handling)
+- Spring Web (for exception handling and REST client)
+- Spring WebFlux / RestClient (for external API integration)
 
 See `pom.xml` for complete dependency list.
 

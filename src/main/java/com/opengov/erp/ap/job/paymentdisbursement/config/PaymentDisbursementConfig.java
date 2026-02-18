@@ -2,6 +2,7 @@ package com.opengov.erp.ap.job.paymentdisbursement.config;
 
 import com.opengov.erp.ap.common.constants.Constants;
 import com.opengov.erp.ap.common.dto.EmployeeCSVDTO;
+import com.opengov.erp.ap.common.validator.EntityIdJobParametersValidator;
 import com.opengov.erp.ap.job.paymentdisbursement.listener.PaymentDisbursementItemProcessListener;
 import com.opengov.erp.ap.job.paymentdisbursement.listener.PaymentDisbursementItemReadListener;
 import com.opengov.erp.ap.job.paymentdisbursement.listener.PaymentDisbursementItemWriteListener;
@@ -56,6 +57,7 @@ public class PaymentDisbursementConfig {
     @Bean
     public Job paymentDisbursementJob() {
         return new JobBuilder(Constants.BatchJob.PAYMENT_DISBURSEMENT, jobRepository)
+                .validator(new EntityIdJobParametersValidator())
                 .start(paymentDisbursementStep())
                 .build();
     }

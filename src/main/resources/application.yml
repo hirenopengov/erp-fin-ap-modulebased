@@ -19,7 +19,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           batch_size: 20
         order_inserts: true
@@ -35,3 +34,9 @@ logging:
   level:
     org.springframework.batch: INFO
     com.opengov.erp.ap: DEBUG
+
+# Vendor API Configuration
+vendor:
+  api:
+    base-url: http://test.vendor.api
+    timeout: 5000
