@@ -1,6 +1,6 @@
 
 -- ============================================================
--- Payment Run - Phase 2 Sample Data
+-- Payment Run - Phase 1 Sample Data
 -- Tables:
 --   pr_ap_invoice_header
 --   pr_ap_payment_run_workflow
@@ -161,7 +161,7 @@ VALUES (
     '44444444-4444-4444-4444-444444444441',
     '11111111-1111-1111-1111-111111111111',
     'PR-2025-0001',
-    'Phase 2 Test Run',
+    'Phase 1 Test Run',
     'READY_FOR_REVIEW',
     '{}'::jsonb,
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
