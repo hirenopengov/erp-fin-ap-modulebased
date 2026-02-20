@@ -13,8 +13,12 @@ public class PayableSummaryItemProcessListener implements ItemProcessListener<Pa
 
     @Override
     public void beforeProcess(PayableSummaryCSVDTO item) {
-        logger.debug("[Payable Summary - PROCESS] Starting to process payable summary - VendorId: {}, TotalAmount: {}",
-                item.getVendorId(), item.getTotalPayableAmount());
+        if (item != null) {
+            logger.debug("[Payable Summary - PROCESS] Starting to process payable summary - VendorId: {}, TotalAmount: {}",
+                    item.getVendorId(), item.getTotalPayableAmount());
+        } else {
+            logger.debug("[Payable Summary - PROCESS] Starting to process payable summary - Item is null");
+        }
     }
 
     @Override
