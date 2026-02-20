@@ -153,7 +153,7 @@ Table ap_payment_run {
   run_description varchar(200)
 
   status ap_payment_run_status [not null, default: 'DRAFT']
-  include boolean [not null, default: true]
+  
   // store both "config inputs" and "computed totals snapshot" for review
   config_snapshot jsonb [not null, default: "{}"]
 
@@ -190,6 +190,38 @@ Table ap_payment_run {
 }
 
 // ============================================================
+// Payment Run Transition (State Machine Audit)
+// Tracks every status change of a payment run
+// ============================================================
+
+Table ap_payment_run_transition {
+  id uuid [pk, not null]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+
+  from_status ap_payment_run_status
+  to_status ap_payment_run_status [not null]
+
+  event varchar(50)
+  notes text
+
+  job_type ap_job_type
+  job_execution_id bigint
+
+  created_by uuid [not null, note: "User UUID who created the record"]
+  updated_by uuid [not null, note: "User UUID who updated the record"]
+
+  created_at timestamptz [not null, default: `now()`, note: "Timestamp when record is created"]
+  updated_at timestamptz [not null, default: `now()`, note: "Timestamp when record is updated"]
+
+  indexes {
+    payment_run_id [name: "ix_ap_payment_run_transition_run"]
+    (entity_id, payment_run_id, created_at) [name: "ix_ap_payment_run_transition_timeline"]
+  }
+}
+
+// ============================================================
 // Payables in Run
 // ============================================================
 
@@ -201,7 +233,7 @@ Table ap_payment_run_payable {
   payable_id uuid [not null]
 
   status ap_payment_run_payable_status [not null, default: 'DRAFT']
-
+include boolean [not null, default: true]
   
 
   
@@ -280,9 +312,9 @@ Table ap_payment_allocation {
 
 Ref: ap_payable.invoice_id > ap_invoice_header.id
 Ref: ap_payment_run_payable.payment_run_id > ap_payment_run.id
+Ref: ap_payment_run_transition.payment_run_id > ap_payment_run.id
 Ref: ap_payment_run_payable.payable_id > ap_payable.id
 Ref: ap_payment.payment_run_id > ap_payment_run.id
 Ref: ap_payment_allocation.payment_id > ap_payment.id
 Ref: ap_payment_allocation.payable_id > ap_payable.id
-
 

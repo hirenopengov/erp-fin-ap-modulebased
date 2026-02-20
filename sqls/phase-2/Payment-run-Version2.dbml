@@ -1,0 +1,452 @@
+// ============================================================
+// FINENG – Payment Run Database Design (DBML)
+// Source: Payment Run Database Design - HP - DRAFT
+// ============================================================
+
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+Enum ap_payable_status {
+  OPEN
+  CLOSED
+  VOID
+}
+
+Enum ap_payment_run_payable_status {
+  DRAFT
+  INCLUDED
+  EXCLUDED
+  NEEDS_REVIEW
+  LOCKED
+  EXECUTED
+  SKIPPED
+}
+
+Enum ap_payment_run_status {
+  DRAFT
+  SUBMITTED
+  READY_FOR_REVIEW
+  PENDING_APPROVAL
+  APPROVED
+  ARTIFACT_PENDING
+  ARTIFACT_READY
+  COMPLETED
+  REJECTED
+  FAILED
+  CANCELLED
+}
+
+Enum ap_payment_method {
+  CHECK
+  ACH
+  WIRE
+  WARRANT
+}
+
+Enum ap_payment_artifact_type {
+  CHECK
+  ACH
+  WIRE
+  POSITIVE_PAY
+  REMITTANCE
+}
+
+Enum ap_payment_artifact_status {
+  CREATED
+  GENERATED
+  TRANSMITTED
+  ACCEPTED
+  REJECTED
+  REISSUED
+  FAILED
+}
+
+Enum ap_payment_status {
+  ISSUED
+  VOIDED
+  REVERSED
+  SETTLED
+  FAILED
+}
+
+
+// ============================================================
+// AP_PAYMENT_RUN
+// ============================================================
+
+Table ap_payment_run {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  run_number varchar(20) [not null]
+  run_description varchar(200)
+
+  run_type varchar(50) [not null]
+  payment_method ap_payment_method [not null]
+
+  bank_account_id uuid [not null]
+  payment_date date [not null]
+
+  remittance_message_template_id uuid
+
+  status ap_payment_run_status [not null]
+
+  prepare_job_execution_id bigint
+  process_job_execution_id bigint
+
+  submitted_at timestamptz
+  submitted_by uuid
+
+  approved_at timestamptz
+  approved_by uuid
+
+  issued_at timestamptz
+  issued_by uuid
+
+  rejected_at timestamptz
+  rejected_by uuid
+  rejection_reason varchar(200)
+
+  cancelled_at timestamptz
+  cancelled_by uuid
+  cancel_reason varchar(200)
+
+  completed_at timestamptz
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  row_version bigint
+}
+
+
+// ============================================================
+// AP_PAYMENT_RUN_TRANSITION
+// ============================================================
+
+Table ap_payment_run_transition {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+
+  from_status ap_payment_run_status
+  to_status ap_payment_run_status [not null]
+
+  event varchar(50)
+  notes text
+
+  job_type varchar(50)
+  job_execution_id bigint
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYABLE
+// ============================================================
+
+Table ap_payable {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  invoice_id uuid [not null]
+
+  payable_type varchar(64) [not null, default: "INVOICE"]
+  payable_reference varchar(128)
+
+  currency varchar(8) [not null]
+
+  original_amount decimal(18,4) [not null]
+  open_amount decimal(18,4) [not null]
+
+  due_date date
+  discount_deadline date
+  discount_max decimal(18,4)
+
+  is_on_hold boolean [not null, default: false]
+
+  status ap_payable_status [not null, default: "OPEN"]
+
+  created_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_by uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT_RUN_PAYABLE
+// ============================================================
+
+Table ap_payment_run_payable {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+  payable_id uuid [not null]
+
+  status ap_payment_run_payable_status [not null, default: "DRAFT"]
+  include boolean [not null, default: true]
+
+  created_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_by uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_BANK_ACCOUNT
+// ============================================================
+
+Table ap_bank_account {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  account_name varchar(255)
+  account_number varchar(100)
+  routing_number varchar(100)
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_REMITTANCE_MESSAGE_TEMPLATE
+// ============================================================
+
+Table ap_remittance_message_template {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  template_name varchar(200) [not null]
+  template_body text [not null]
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT_RUN_JOB
+// ============================================================
+
+Table ap_payment_run_job {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+
+  job_type varchar(50) [not null]
+  job_execution_id bigint [not null]
+
+  status varchar(50) [not null]
+
+  started_at timestamptz [not null]
+  ended_at timestamptz
+
+  exit_code varchar(50)
+  exit_message text
+
+  created_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_by uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT
+// ============================================================
+
+Table ap_payment {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+
+  payment_number varchar(64) [not null]
+  payment_method ap_payment_method
+
+  payable_count int [not null]
+  payable_amount decimal(18,4) [not null]
+
+  discount decimal(18,4)
+  discounted_amount decimal(18,4) [not null]
+
+  vendor_id int [not null]
+  vendor_name varchar(255)
+  vendor_address text
+
+  bank_account_id uuid [not null]
+  currency varchar(8) [not null]
+  reference varchar(255)
+
+  issue_date date [not null]
+  payment_date date [not null]
+  issued_at timestamptz
+
+  status ap_payment_status [not null, default: "ISSUED"]
+
+  created_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_by uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT_ALLOCATION
+// ============================================================
+
+Table ap_payment_allocation {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_id uuid [not null]
+  payable_id uuid [not null]
+
+  created_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_by uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT_REGISTER
+// ============================================================
+
+Table ap_payment_register {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_id uuid [not null]
+  payment_run_id uuid [not null]
+
+  instrument_type ap_payment_method [not null]
+  instrument_number varchar(100) [not null]
+
+  bank_account_id uuid [not null]
+
+  payee_vendor_id int [not null]
+  payee_name varchar(255)
+  payee_address text
+
+  currency varchar(8) [not null]
+  amount decimal(18,4) [not null]
+
+  issue_date date [not null]
+  payment_date date [not null]
+
+  status ap_payment_status [not null]
+
+  void_reason varchar(200)
+  reissue_of_register_id uuid
+  posted_to_gl_at timestamptz
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  row_version bigint
+}
+
+
+// ============================================================
+// AP_PAYMENT_ARTIFACT
+// ============================================================
+
+Table ap_payment_artifact {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  payment_run_id uuid [not null]
+
+  artifact_type ap_payment_artifact_type [not null]
+
+  version int [not null, default: 1]
+  format varchar(20) [not null]
+
+  file_name varchar(255)
+  storage_key varchar(500)
+  checksum varchar(128)
+  file_size bigint
+
+  status ap_payment_artifact_status [not null, default: "CREATED"]
+
+  job_execution_id bigint
+
+  generated_at timestamptz
+  transmitted_at timestamptz
+  failure_reason varchar(500)
+
+  parameters_snapshot jsonb
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// AP_PAYMENT_REGISTER_ARTIFACT
+// ============================================================
+
+Table ap_payment_register_artifact {
+  id uuid [pk]
+  entity_id uuid [not null]
+
+  artifact_id uuid [not null]
+  payment_register_id uuid [not null]
+
+  line_number int
+  amount_snapshot decimal(18,4)
+  instrument_number varchar(100)
+
+  created_by uuid [not null]
+  updated_by uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+
+// ============================================================
+// RELATIONSHIPS
+// ============================================================
+
+Ref: ap_payment_run_transition.payment_run_id > ap_payment_run.id
+Ref: ap_payment_run_payable.payment_run_id > ap_payment_run.id
+Ref: ap_payment_run_payable.payable_id > ap_payable.id
+Ref: ap_payment_run_job.payment_run_id > ap_payment_run.id
+
+Ref: ap_payment.payment_run_id > ap_payment_run.id
+Ref: ap_payment.bank_account_id > ap_bank_account.id
+
+Ref: ap_payment_allocation.payment_id > ap_payment.id
+Ref: ap_payment_allocation.payable_id > ap_payable.id
+
+Ref: ap_payment_register.payment_id > ap_payment.id
+Ref: ap_payment_register.payment_run_id > ap_payment_run.id
+Ref: ap_payment_register.reissue_of_register_id > ap_payment_register.id
+
+Ref: ap_payment_artifact.payment_run_id > ap_payment_run.id
+
+Ref: ap_payment_register_artifact.artifact_id > ap_payment_artifact.id
+Ref: ap_payment_register_artifact.payment_register_id > ap_payment_register.id
