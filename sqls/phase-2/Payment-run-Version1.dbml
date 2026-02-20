@@ -153,7 +153,7 @@ Table ap_payment_run {
   run_description varchar(200)
 
   status ap_payment_run_status [not null, default: 'DRAFT']
-
+  include boolean [not null, default: true]
   // store both "config inputs" and "computed totals snapshot" for review
   config_snapshot jsonb [not null, default: "{}"]
 
